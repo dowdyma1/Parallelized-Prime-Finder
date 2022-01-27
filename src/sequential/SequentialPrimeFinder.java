@@ -1,17 +1,19 @@
+package sequential;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class PrimeFinder implements Runnable{
+public class SequentialPrimeFinder implements Runnable{
     private final List<Integer> numbers;
     private final AtomicBoolean readyToGive;
     private final AtomicBoolean readyToStore;
     private final AtomicInteger storePrime;
     private final AtomicBoolean completionBoolean;
 
-    public PrimeFinder(List<Integer> numbers, AtomicBoolean readyToGive, AtomicBoolean readyToStore,
-                       AtomicInteger storePrime, AtomicBoolean completionBoolean){
+    public SequentialPrimeFinder(List<Integer> numbers, AtomicBoolean readyToGive, AtomicBoolean readyToStore,
+                                 AtomicInteger storePrime, AtomicBoolean completionBoolean){
         this.numbers = numbers;
         this.readyToGive = readyToGive;
         this.readyToStore = readyToStore;
@@ -35,6 +37,19 @@ public class PrimeFinder implements Runnable{
         return true;
     }
 
+    // 1. there are no other threads readyToGive, acquire it.
+    // 2. the storageManager is ready to accept primes
+    private boolean givePrimeToStorage(Integer prime){
+        if(readyToStore.get() && readyToGive.compareAndSet(false, true)){
+            System.out.println("Giving prime " + prime + " to storage.");
+            storePrime.set(prime);
+            readyToGive.set(false);
+            readyToStore.set(false);
+            return true;
+        }
+        return false;
+    }
+
     public void run(){
         System.out.println("Started thread " + Thread.currentThread().getId());
         List<Integer> localPrimes = new ArrayList<>();
@@ -44,7 +59,7 @@ public class PrimeFinder implements Runnable{
                 localPrimes.add(num);
             }
         }
-        Driver.sendPrimesToStorage(localPrimes);
+        SequentialDriver.sendPrimesToStorage(localPrimes);
 
         completionBoolean.set(true);
     }

@@ -1,3 +1,5 @@
+package sequential;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -6,10 +8,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class Driver {
+public class SequentialDriver {
     static final int upperBound = 100000000;
     static final int lowerBound = 1;
-    static final int numThreads = 8;
+    static final int numThreads = 1;
 
     static final List<Integer> primes = new ArrayList<>();
 
@@ -29,29 +31,21 @@ public class Driver {
     }
 
     public static void main(String args[]){
-        List<Integer> sequentialValues = IntStream.rangeClosed(lowerBound, upperBound).boxed().collect(Collectors.toList());
-
+        List<Integer> allValues = IntStream.rangeClosed(lowerBound, upperBound).boxed().collect(Collectors.toList());
+        //int[] vals = IntStream.range(lowerBound, upperBound).toArray();
+        //List<Integer> allValues = Arrays.stream(vals).boxed().toList();
+//        ArrayList<Integer> allValues = new ArrayList<>();
         ArrayList<Thread> threads = new ArrayList<>();
 
+//        for(int i=1; i < upperBound; i++){
+//            allValues.add(i);
+//        }
+//
         AtomicBoolean readyToGive = new AtomicBoolean(false);
         AtomicBoolean readyToStore = new AtomicBoolean(false);
         AtomicInteger storePrime = new AtomicInteger();
 
-        ArrayList<List<Integer>> slices = new ArrayList<>();
-        int numSlices = 1000;
-        int sliceSize = upperBound/numSlices;
-        // might not capture all
-        for(int i = 0; i < upperBound; i += sliceSize){
-            System.out.println(i + ", " + i+sliceSize);
-            slices.add(sequentialValues.subList(i, i+sliceSize));
-        }
-
-        List<Integer> allValues = new ArrayList<>();
-        Collections.shuffle(slices);
-
-        for(List<Integer> slice: slices){
-            allValues.addAll(slice);
-        }
+//        Collections.shuffle(allValues);
 
         int bucketSize = allValues.size()/numThreads;
         for(int i = 0; i < numThreads; i++){
@@ -59,7 +53,7 @@ public class Driver {
 
             List<Integer> bucket = allValues.subList(i*bucketSize, (i+1)*bucketSize);
 
-            PrimeFinder curPrimeFinder = new PrimeFinder(bucket, readyToGive, readyToStore, storePrime,
+            SequentialPrimeFinder curPrimeFinder = new SequentialPrimeFinder(bucket, readyToGive, readyToStore, storePrime,
                     completionBoolean);
             completionBooleans.add(completionBoolean);
 
