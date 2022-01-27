@@ -1,8 +1,10 @@
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -28,30 +30,25 @@ public class Driver {
         primes.addAll(localPrimes);
     }
 
-    public static void main(String args[]){
+    public static void main(String[] args) throws IOException {
+        long startTime = System.nanoTime();
         List<Integer> sequentialValues = IntStream.rangeClosed(lowerBound, upperBound).boxed().collect(Collectors.toList());
+        List<Integer> allValues = new ArrayList<>();
 
-        ArrayList<Thread> threads = new ArrayList<>();
-
-        AtomicBoolean readyToGive = new AtomicBoolean(false);
-        AtomicBoolean readyToStore = new AtomicBoolean(false);
-        AtomicInteger storePrime = new AtomicInteger();
-
+        // "lazy" shuffling, alternative to Collections.shuffle(sequentialValues)
         ArrayList<List<Integer>> slices = new ArrayList<>();
-        int numSlices = 1000;
+        int numSlices = 100000;
         int sliceSize = upperBound/numSlices;
-        // might not capture all
+
         for(int i = 0; i < upperBound; i += sliceSize){
-            System.out.println(i + ", " + i+sliceSize);
             slices.add(sequentialValues.subList(i, i+sliceSize));
         }
-
-        List<Integer> allValues = new ArrayList<>();
         Collections.shuffle(slices);
 
         for(List<Integer> slice: slices){
             allValues.addAll(slice);
         }
+        // "lazy" shuffling complete
 
         int bucketSize = allValues.size()/numThreads;
         for(int i = 0; i < numThreads; i++){
@@ -59,27 +56,29 @@ public class Driver {
 
             List<Integer> bucket = allValues.subList(i*bucketSize, (i+1)*bucketSize);
 
-            PrimeFinder curPrimeFinder = new PrimeFinder(bucket, readyToGive, readyToStore, storePrime,
-                    completionBoolean);
+            PrimeFinder curPrimeFinder = new PrimeFinder(bucket, completionBoolean);
             completionBooleans.add(completionBoolean);
 
-            Thread thread = new Thread(curPrimeFinder);
-            threads.add(thread);
-            thread.start();
+            new Thread(curPrimeFinder).start();
         }
 
         while(!allThreadsComplete()){}
 
-        Collections.sort(primes, Collections.reverseOrder());
+        primes.sort(Collections.reverseOrder());
+        long primesSum = primes.stream().mapToLong(Integer::intValue).sum();
 
-        System.out.println("Number of primes: " + primes.size() + "\nPrimes sum: " +
-                primes.stream().mapToLong(Integer::intValue).sum());
+        long endTime = System.nanoTime();
 
-        System.out.println("Highest 10 primes:");
+        FileWriter fileWriter = new FileWriter("primes.txt");
+        PrintWriter printWriter = new PrintWriter(fileWriter);
 
-        for(Integer prime: primes.subList(0, 9)){
-            System.out.print(prime + " ");
+        printWriter.print((endTime-startTime) + " " + primes.size() + " " + primesSum + "\n");
+
+        ArrayList<Integer> topTen = new ArrayList<>(primes.subList(0, 10));
+        Collections.reverse(topTen);
+        for(Integer prime: topTen){
+            printWriter.print(prime + " ");
         }
-
+        printWriter.close();
     }
 }
