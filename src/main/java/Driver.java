@@ -31,27 +31,13 @@ public class Driver {
     }
 
     public static void main(String[] args) throws IOException {
-        List<Integer> sequentialValues = IntStream.rangeClosed(lowerBound, upperBound).boxed().collect(Collectors.toList());
-        List<Integer> allValues = new ArrayList<>();
+        List<Thread> threads = new ArrayList<>();
 
-        // "lazy" shuffling, alternative to Collections.shuffle(sequentialValues)
-        ArrayList<List<Integer>> slices = new ArrayList<>();
-        int numSlices = 100000;
-        int sliceSize = upperBound/numSlices;
-
-        for(int i = 0; i < upperBound; i += sliceSize){
-            slices.add(sequentialValues.subList(i, i+sliceSize));
-        }
-        Collections.shuffle(slices);
-
-        for(List<Integer> slice: slices){
-            allValues.addAll(slice);
-        }
-        // "lazy" shuffling complete
+        List<Integer> allValues = IntStream.rangeClosed(lowerBound, upperBound).boxed().collect(Collectors.toList());
+        Collections.shuffle(allValues);
 
         int bucketSize = allValues.size()/numThreads;
 
-        long startTime = System.nanoTime();
         for(int i = 0; i < numThreads; i++){
             AtomicBoolean completionBoolean = new AtomicBoolean(false);
 
@@ -59,8 +45,12 @@ public class Driver {
 
             PrimeFinder curPrimeFinder = new PrimeFinder(bucket, completionBoolean);
             completionBooleans.add(completionBoolean);
+            threads.add(new Thread(curPrimeFinder));
+        }
 
-            new Thread(curPrimeFinder).start();
+        long startTime = System.nanoTime();
+        for(Thread thread: threads){
+            thread.start();
         }
 
         while(!allThreadsComplete()){}
