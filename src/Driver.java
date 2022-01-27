@@ -31,7 +31,6 @@ public class Driver {
     }
 
     public static void main(String[] args) throws IOException {
-        long startTime = System.nanoTime();
         List<Integer> sequentialValues = IntStream.rangeClosed(lowerBound, upperBound).boxed().collect(Collectors.toList());
         List<Integer> allValues = new ArrayList<>();
 
@@ -51,6 +50,8 @@ public class Driver {
         // "lazy" shuffling complete
 
         int bucketSize = allValues.size()/numThreads;
+
+        long startTime = System.nanoTime();
         for(int i = 0; i < numThreads; i++){
             AtomicBoolean completionBoolean = new AtomicBoolean(false);
 
@@ -63,11 +64,11 @@ public class Driver {
         }
 
         while(!allThreadsComplete()){}
+        long endTime = System.nanoTime();
 
         primes.sort(Collections.reverseOrder());
         long primesSum = primes.stream().mapToLong(Integer::intValue).sum();
 
-        long endTime = System.nanoTime();
 
         FileWriter fileWriter = new FileWriter("primes.txt");
         PrintWriter printWriter = new PrintWriter(fileWriter);
